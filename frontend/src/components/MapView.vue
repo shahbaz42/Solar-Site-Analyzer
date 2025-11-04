@@ -6,26 +6,28 @@
   <!-- Map Controls Overlay -->
   <div class="absolute top-4 right-4 space-y-2">
     <button
-      @click="zoomIn"
-      class="p-2 bg-white rounded-lg shadow-lg hover:bg-gray-50 transition-colors"
-      title="Zoom In"
-    >
-      <Plus class="w-5 h-5 text-gray-700" />
-    </button>
-    <button
-      @click="zoomOut"
-      class="p-2 bg-white rounded-lg shadow-lg hover:bg-gray-50 transition-colors"
-      title="Zoom Out"
-    >
-      <Minus class="w-5 h-5 text-gray-700" />
-    </button>
-    <button
-      @click="resetView"
-      class="p-2 bg-white rounded-lg shadow-lg hover:bg-gray-50 transition-colors"
-      title="Reset View"
-    >
-      <Home class="w-5 h-5 text-gray-700" />
-    </button>
+    @click="zoomIn"
+    class="p-2 bg-white hover:bg-gray-50 transition-colors rounded-l-lg border-r border-gray-200"
+    title="Zoom In"
+  >
+    <Plus class="w-5 h-5 text-gray-700" />
+  </button>
+
+  <button
+    @click="zoomOut"
+    class="p-2 bg-white hover:bg-gray-50 transition-colors border-r border-gray-200"
+    title="Zoom Out"
+  >
+    <Minus class="w-5 h-5 text-gray-700" />
+  </button>
+
+  <button
+    @click="resetView"
+    class="p-2 bg-white hover:bg-gray-50 transition-colors rounded-r-lg"
+    title="Reset View"
+  >
+    <Home class="w-5 h-5 text-gray-700" />
+  </button>
   </div>
 
   <!-- Site Detail Popup -->
@@ -80,7 +82,7 @@ onMounted(() => {
     zoom: DEFAULT_MAP_ZOOM,
   });
 
-  map.value.addControl(new mapboxgl.NavigationControl(), 'top-left');
+  // map.value.addControl(new mapboxgl.NavigationControl(), 'top-left');
   
   // Update popup position during map movement
   map.value.on('move', () => {

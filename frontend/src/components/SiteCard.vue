@@ -1,7 +1,7 @@
 <template>
   <div
     :data-site-id="site.site_id"
-    class="flex-shrink-0 w-64 bg-gray-700 rounded-lg p-4 cursor-pointer transition-all duration-200 hover:bg-gray-600 border-2"
+    class="flex-shrink-0 w-64 bg-gray-700 rounded-lg p-2 cursor-pointer transition-all duration-200 hover:bg-gray-600 border-2"
     :class="isSelected ? 'border-primary-500 shadow-lg shadow-primary-500/20' : 'border-transparent'"
     @click="$emit('click')"
   >

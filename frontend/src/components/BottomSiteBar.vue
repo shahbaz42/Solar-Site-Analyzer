@@ -35,7 +35,7 @@
       class="flex-1 overflow-x-auto overflow-y-hidden px-6 py-4"
       @scroll="updateScrollState"
     >
-      <div class="flex space-x-4 h-full">
+      <div class="flex flex-nowrap space-x-4 h-full min-w-min">
         <SiteCard
           v-for="site in siteStore.sortedSites"
           :key="site.site_id"
@@ -60,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { Layers, ChevronLeft, ChevronRight, Search } from 'lucide-vue-next';
 import { useSiteStore } from '@/stores/siteStore';
 import SiteCard from '@/components/SiteCard.vue';
@@ -78,6 +78,12 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateScrollState);
+});
+
+// Update scroll state when sites change
+watch(() => siteStore.sortedSites.length, async () => {
+  await nextTick();
+  updateScrollState();
 });
 
 function updateScrollState() {
@@ -114,7 +120,7 @@ function handleSiteClick(site: Site) {
 <style scoped>
 /* Hide scrollbar but keep functionality */
 div::-webkit-scrollbar {
-  display: none;
+  /* display: none; */
 }
 div {
   -ms-overflow-style: none;

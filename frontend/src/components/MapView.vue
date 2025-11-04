@@ -63,6 +63,7 @@ const mapContainer = ref<HTMLDivElement>();
 const map = ref<mapboxgl.Map>();
 const markers = ref<Map<number, mapboxgl.Marker>>(new Map());
 const popupPosition = ref<{ x: number; y: number } | null>(null);
+let popupUpdateInterval: number | null = null;
 
 onMounted(() => {
   if (!MAPBOX_TOKEN) {
@@ -80,6 +81,13 @@ onMounted(() => {
   });
 
   map.value.addControl(new mapboxgl.NavigationControl(), 'top-left');
+  
+  // Update popup position during map movement
+  map.value.on('move', () => {
+    if (siteStore.selectedSite) {
+      updatePopupPosition(siteStore.selectedSite);
+    }
+  });
   
   // Update markers when sites change
   watch(() => siteStore.filteredSites, updateMarkers, { immediate: true, deep: true });
@@ -100,6 +108,9 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  if (popupUpdateInterval) {
+    clearInterval(popupUpdateInterval);
+  }
   map.value?.remove();
 });
 
@@ -114,35 +125,50 @@ function updateMarkers(sites: Site[]) {
   sites.forEach((site) => {
     const score = site.total_suitability_score ?? 0;
     const color = getScoreColor(score);
+    const isSelected = siteStore.selectedSite?.site_id === site.site_id;
 
-    // Create custom marker element
+    // Create wrapper for proper positioning
+    const wrapper = document.createElement('div');
+    wrapper.className = 'marker-wrapper';
+    wrapper.style.position = 'relative';
+    
+    // Create inner marker element that can scale
     const el = document.createElement('div');
     el.className = 'custom-marker';
-    el.style.width = '24px';
-    el.style.height = '24px';
+    el.style.width = isSelected ? '36px' : '24px';
+    el.style.height = isSelected ? '36px' : '24px';
     el.style.borderRadius = '50%';
     el.style.backgroundColor = color;
-    el.style.border = '2px solid white';
+    el.style.border = isSelected ? '3px solid #fbbf24' : '2px solid white';
     el.style.cursor = 'pointer';
-    el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
-    el.style.transition = 'transform 0.2s';
+    el.style.boxShadow = isSelected ? '0 0 20px rgba(251, 191, 36, 0.6)' : '0 2px 4px rgba(0,0,0,0.3)';
+    el.style.transition = 'width 0.2s, height 0.2s, border 0.2s, box-shadow 0.2s';
+    el.style.position = 'absolute';
+    el.style.top = '50%';
+    el.style.left = '50%';
+    el.style.transform = 'translate(-50%, -50%)';
+    el.style.willChange = 'width, height';
 
-    // Add hover effect
+    // Add hover effect - only change size, not transform
     el.addEventListener('mouseenter', () => {
-      el.style.transform = 'scale(1.2)';
+      if (!isSelected) {
+        el.style.width = '28px';
+        el.style.height = '28px';
+      }
     });
     el.addEventListener('mouseleave', () => {
-      el.style.transform = 'scale(1)';
+      if (!isSelected) {
+        el.style.width = '24px';
+        el.style.height = '24px';
+      }
     });
 
-    // Highlight selected site
-    if (siteStore.selectedSite?.site_id === site.site_id) {
-      el.style.transform = 'scale(1.5)';
-      el.style.border = '3px solid #fbbf24';
-      el.style.boxShadow = '0 0 20px rgba(251, 191, 36, 0.6)';
-    }
+    wrapper.appendChild(el);
 
-    const marker = new mapboxgl.Marker(el)
+    const marker = new mapboxgl.Marker({
+      element: wrapper,
+      anchor: 'center'
+    })
       .setLngLat([site.longitude, site.latitude])
       .addTo(map.value!);
 

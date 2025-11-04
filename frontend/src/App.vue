@@ -14,7 +14,9 @@
       </div>
       
       <!-- Bottom Site Cards -->
-      <BottomSiteBar />
+      <div class="absolute bottom-0 left-0 right-0 z-20">
+          <BottomSiteBar />
+        </div>
     </div>
 
     <!-- Loading Overlay -->

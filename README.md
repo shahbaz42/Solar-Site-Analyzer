@@ -20,33 +20,51 @@ A comprehensive full-stack application for analyzing and managing solar panel in
 - **Modern Frontend** - Vue 3 with TypeScript and Tailwind CSS
 - **Production Ready** - Docker containerization with auto-initialization
 
+## Functional Requirements
+
+### Core Features
+1. Upload/load provided spatial dataset            ✅ 
+2. Display all sites on an interactive map         ✅ 
+3. Calculate suitability score for each site       ✅ 
+4. Filter and sort sites by various criteria       ✅ 
+5. Show detailed information for individual sites  ✅ 
+6. Responsive UI that works on desktop and mobile  ✅ 
+7. Export filtered site data to CSV / JSON         ✅ 
+
+### Bonus Features
+1. Real-time score recalculation with adjustable weights  ✅ 
+2. Comparative analysis between multiple sites            ✅ 
+3. Data caching for performance optimization              ✅ 
+4. Docker containerization                                ✅ 
+5. Unit tests for critical functions                      ✅ 
+
 ## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│              Solar Site Analyzer                     │
+│              Solar Site Analyzer                    │
 ├─────────────────────────────────────────────────────┤
-│                                                      │
+│                                                     │
 │  Frontend (Vue.js 3 + TypeScript)                   │
 │  ├─ Interactive Mapbox visualization                │
 │  ├─ Site cards and filtering                        │
 │  ├─ Weight adjustment controls                      │
 │  └─ Real-time statistics dashboard                  │
-│                                                      │
+│                                                     │
 ├─────────────────────────────────────────────────────┤
-│                                                      │
+│                                                     │
 │  Backend (FastAPI + Python 3.11)                    │
 │  ├─ RESTful API endpoints                           │
 │  ├─ MySQL stored procedure integration              │
 │  ├─ Redis caching layer                             │
 │  └─ Automatic database initialization               │
-│                                                      │
+│                                                     │
 ├─────────────────────────────────────────────────────┤
-│                                                      │
-│  Data Layer                                          │
+│                                                     │
+│  Data Layer                                         │
 │  ├─ MySQL 8.0 (persistent storage)                  │
 │  └─ Redis 7 (caching)                               │
-│                                                      │
+│                                                     │
 └─────────────────────────────────────────────────────┘
 ```
 

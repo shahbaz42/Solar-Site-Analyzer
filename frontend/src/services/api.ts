@@ -64,6 +64,49 @@ class ApiService {
     const response = await this.client.get('/health');
     return response.data;
   }
+
+  // Export sites as CSV
+  async exportCSV(params?: {
+    min_score?: number;
+    max_score?: number;
+  }): Promise<void> {
+    const response = await this.client.get('/api/export', {
+      params: { ...params, format: 'csv' },
+      responseType: 'blob',
+    });
+    
+    // Create download link
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `solar_sites_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  }
+
+  // Export sites as JSON
+  async exportJSON(params?: {
+    min_score?: number;
+    max_score?: number;
+  }): Promise<void> {
+    const response = await this.client.get('/api/export', {
+      params: { ...params, format: 'json' },
+    });
+    
+    // Create download link
+    const dataStr = JSON.stringify(response.data, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = window.URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `solar_sites_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  }
 }
 
 export default new ApiService();

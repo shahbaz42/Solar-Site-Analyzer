@@ -303,17 +303,26 @@ class SiteService:
     @staticmethod
     async def export_sites(
         db: AsyncSession,
-        min_score: Optional[float] = None
+        min_score: Optional[float] = None,
+        max_score: Optional[float] = None
     ) -> List[Dict[str, Any]]:
         """
         Export sites data with optional filtering
         """
-        where_clause = ""
+        where_conditions = []
         params = {}
         
         if min_score is not None:
-            where_clause = "WHERE total_suitability_score >= :min_score"
+            where_conditions.append("total_suitability_score >= :min_score")
             params["min_score"] = min_score
+        
+        if max_score is not None:
+            where_conditions.append("total_suitability_score <= :max_score")
+            params["max_score"] = max_score
+        
+        where_clause = ""
+        if where_conditions:
+            where_clause = "WHERE " + " AND ".join(where_conditions)
         
         query = text(f"""
             SELECT 

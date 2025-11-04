@@ -1,8 +1,6 @@
 """Analysis service for calculating suitability scores"""
 
-from typing import Dict, Tuple
-from decimal import Decimal
-import json
+from typing import Tuple
 from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -136,73 +134,26 @@ class AnalysisService:
         weights: AnalysisWeights
     ) -> AnalysisResponse:
         """
-        Recalculate suitability scores for all sites with custom weights
+        Recalculate suitability scores for all sites with custom weights using MySQL stored procedure
         """
         # First, update the weights in the database
         await AnalysisService._update_weights(db, weights)
         
-        # Fetch all sites
-        query = text("""
-            SELECT 
-                site_id, solar_irradiance_kwh, area_sqm, 
-                grid_distance_km, slope_degrees, road_distance_km
-            FROM sites
-        """)
+        # Get count of sites before analysis
+        count_query = text("SELECT COUNT(*) as total FROM sites")
+        result = await db.execute(count_query)
+        sites_count = result.scalar()
         
-        result = await db.execute(query)
-        sites = result.fetchall()
-        
-        # Calculate scores for each site
-        sites_analyzed = 0
-        for site in sites:
-            scores = AnalysisService.calculate_all_scores(
-                solar_irradiance=float(site.solar_irradiance_kwh),
-                area=site.area_sqm,
-                grid_distance=float(site.grid_distance_km),
-                slope=float(site.slope_degrees),
-                road_distance=float(site.road_distance_km),
-                weights=weights
-            )
-            
-            # Insert new analysis result
-            insert_query = text("""
-                INSERT INTO analysis_results (
-                    site_id, solar_irradiance_score, area_score, 
-                    grid_distance_score, slope_score, infrastructure_score,
-                    total_suitability_score, parameters_snapshot
-                ) VALUES (
-                    :site_id, :solar_score, :area_score,
-                    :grid_score, :slope_score, :infra_score,
-                    :total_score, :params_json
-                )
-            """)
-            
-            params_snapshot = json.dumps({
-                "solar_weight": weights.solar,
-                "area_weight": weights.area,
-                "grid_weight": weights.grid_distance,
-                "slope_weight": weights.slope,
-                "infra_weight": weights.infrastructure
-            })
-            
-            await db.execute(insert_query, {
-                "site_id": site.site_id,
-                "solar_score": scores[0],
-                "area_score": scores[1],
-                "grid_score": scores[2],
-                "slope_score": scores[3],
-                "infra_score": scores[4],
-                "total_score": scores[5],
-                "params_json": params_snapshot
-            })
-            sites_analyzed += 1
+        # Call the MySQL stored procedure to calculate scores
+        procedure_call = text("CALL calculate_suitability_scores()")
+        await db.execute(procedure_call)
         
         await db.commit()
         
         return AnalysisResponse(
             success=True,
-            message=f"Successfully recalculated scores for {sites_analyzed} sites",
-            sites_analyzed=sites_analyzed,
+            message=f"Successfully recalculated scores for {sites_count} sites using MySQL stored procedure",
+            sites_analyzed=sites_count,
             weights_used=weights,
             timestamp=datetime.now()
         )

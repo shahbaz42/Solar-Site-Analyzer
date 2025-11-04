@@ -150,12 +150,32 @@ class SiteService:
         )
     
     @staticmethod
-    async def get_statistics(db: AsyncSession) -> StatisticsResponse:
+    async def get_statistics(
+        db: AsyncSession,
+        min_score: Optional[float] = None,
+        max_score: Optional[float] = None
+    ) -> StatisticsResponse:
         """
-        Get comprehensive statistics across all sites
+        Get comprehensive statistics across all sites with optional filtering
         """
+        # Build WHERE clause for filtering
+        where_conditions = []
+        params = {}
+        
+        if min_score is not None:
+            where_conditions.append("total_suitability_score >= :min_score")
+            params["min_score"] = min_score
+        
+        if max_score is not None:
+            where_conditions.append("total_suitability_score <= :max_score")
+            params["max_score"] = max_score
+        
+        where_clause = ""
+        if where_conditions:
+            where_clause = "WHERE " + " AND ".join(where_conditions)
+        
         # Overall stats
-        overall_query = text("""
+        overall_query = text(f"""
             SELECT 
                 COUNT(*) as total_sites,
                 COUNT(total_suitability_score) as sites_analyzed,
@@ -164,25 +184,34 @@ class SiteService:
                 MAX(total_suitability_score) as max_score,
                 STDDEV(total_suitability_score) as std_dev
             FROM sites_with_scores
+            {where_clause}
         """)
         
-        result = await db.execute(overall_query)
+        result = await db.execute(overall_query, params)
         overall = result.fetchone()
         
+        # Build WHERE for scores with NOT NULL
+        score_where_conditions = ["total_suitability_score IS NOT NULL"]
+        if min_score is not None:
+            score_where_conditions.append("total_suitability_score >= :min_score")
+        if max_score is not None:
+            score_where_conditions.append("total_suitability_score <= :max_score")
+        score_where_clause = "WHERE " + " AND ".join(score_where_conditions)
+        
         # Get all scores for median calculation
-        scores_query = text("""
+        scores_query = text(f"""
             SELECT total_suitability_score 
             FROM sites_with_scores 
-            WHERE total_suitability_score IS NOT NULL
+            {score_where_clause}
             ORDER BY total_suitability_score
         """)
         
-        scores_result = await db.execute(scores_query)
+        scores_result = await db.execute(scores_query, params)
         scores = [float(row.total_suitability_score) for row in scores_result.fetchall()]
         median_score = statistics.median(scores) if scores else 0.0
         
         # Score distribution
-        distribution_query = text("""
+        distribution_query = text(f"""
             SELECT 
                 CASE 
                     WHEN total_suitability_score >= 80 THEN '80-100 (Excellent)'
@@ -193,12 +222,12 @@ class SiteService:
                 END as range_label,
                 COUNT(*) as count
             FROM sites_with_scores
-            WHERE total_suitability_score IS NOT NULL
+            {score_where_clause}
             GROUP BY range_label
             ORDER BY MIN(total_suitability_score) DESC
         """)
         
-        dist_result = await db.execute(distribution_query)
+        dist_result = await db.execute(distribution_query, params)
         total_analyzed = overall.sites_analyzed or 1
         score_distribution = [
             ScoreDistribution(
@@ -210,7 +239,7 @@ class SiteService:
         ]
         
         # Regional stats
-        regional_query = text("""
+        regional_query = text(f"""
             SELECT 
                 region,
                 COUNT(*) as site_count,
@@ -218,12 +247,12 @@ class SiteService:
                 MAX(total_suitability_score) as max_score,
                 MIN(total_suitability_score) as min_score
             FROM sites_with_scores
-            WHERE total_suitability_score IS NOT NULL
+            {score_where_clause}
             GROUP BY region
             ORDER BY avg_score DESC
         """)
         
-        regional_result = await db.execute(regional_query)
+        regional_result = await db.execute(regional_query, params)
         regional_stats = [
             RegionalStats(
                 region=row.region,
@@ -236,19 +265,19 @@ class SiteService:
         ]
         
         # Land type stats
-        landtype_query = text("""
+        landtype_query = text(f"""
             SELECT 
                 land_type,
                 COUNT(*) as site_count,
                 AVG(total_suitability_score) as avg_score,
                 MAX(total_suitability_score) as max_score
             FROM sites_with_scores
-            WHERE total_suitability_score IS NOT NULL
+            {score_where_clause}
             GROUP BY land_type
             ORDER BY avg_score DESC
         """)
         
-        landtype_result = await db.execute(landtype_query)
+        landtype_result = await db.execute(landtype_query, params)
         land_type_stats = [
             LandTypeStats(
                 land_type=row.land_type,
@@ -260,18 +289,18 @@ class SiteService:
         ]
         
         # Top performing sites
-        top_sites_query = text("""
+        top_sites_query = text(f"""
             SELECT 
                 site_id, site_name, latitude, longitude,
                 region, land_type, total_suitability_score,
                 analysis_timestamp
             FROM sites_with_scores
-            WHERE total_suitability_score IS NOT NULL
+            {score_where_clause}
             ORDER BY total_suitability_score DESC
             LIMIT 10
         """)
         
-        top_result = await db.execute(top_sites_query)
+        top_result = await db.execute(top_sites_query, params)
         top_sites = [
             SiteResponse(
                 site_id=row.site_id,

@@ -1,7 +1,8 @@
 """Analysis API endpoints"""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional
 
 from app.database import get_db
 from app.services.analysis_service import AnalysisService
@@ -71,10 +72,26 @@ async def analyze_with_custom_weights(
     description="Returns comprehensive statistics across all sites including distributions and rankings"
 )
 async def get_statistics(
+    min_score: Optional[float] = Query(
+        None,
+        ge=0,
+        le=100,
+        description="Minimum suitability score filter"
+    ),
+    max_score: Optional[float] = Query(
+        None,
+        ge=0,
+        le=100,
+        description="Maximum suitability score filter"
+    ),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Retrieve comprehensive statistics across all sites.
+    Retrieve comprehensive statistics across all sites or filtered results.
+    
+    **Query Parameters:**
+    - **min_score**: Minimum suitability score filter (optional)
+    - **max_score**: Maximum suitability score filter (optional)
     
     **Returns:**
     - **Overall metrics**: Total sites, average/median/min/max scores, standard deviation
@@ -84,7 +101,11 @@ async def get_statistics(
     - **Top performers**: Top 10 sites by suitability score
     """
     try:
-        statistics = await SiteService.get_statistics(db=db)
+        statistics = await SiteService.get_statistics(
+            db=db,
+            min_score=min_score,
+            max_score=max_score
+        )
         return statistics
     except Exception as e:
         raise HTTPException(

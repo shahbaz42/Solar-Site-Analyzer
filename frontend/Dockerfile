@@ -5,6 +5,14 @@ FROM node:20-alpine AS builder
 # Set working directory
 WORKDIR /app
 
+# Accept build arguments for environment variables
+ARG VITE_API_BASE_URL
+ARG VITE_MAPBOX_TOKEN
+
+# Set as environment variables for build process
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_MAPBOX_TOKEN=$VITE_MAPBOX_TOKEN
+
 # Copy package files
 COPY package*.json ./
 

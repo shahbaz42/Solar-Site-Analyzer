@@ -81,10 +81,13 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+        VITE_MAPBOX_TOKEN: ${VITE_MAPBOX_TOKEN:-YOUR_MAPBOX_TOKEN}
     container_name: solar_analyzer_frontend
     environment:
       VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
-      VITE_MAPBOX_TOKEN: ${VITE_MAPBOX_TOKEN:-}
+      VITE_MAPBOX_TOKEN: ${VITE_MAPBOX_TOKEN:-YOUR_MAPBOX_TOKEN}
     ports:
       - "8080:80"
     depends_on:

@@ -2,11 +2,22 @@
   <div class="h-52 bg-gray-800 border-t border-gray-700 overflow-hidden flex flex-col">
     <!-- Header -->
     <div class="px-6 py-3 border-b border-gray-700 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <Layers class="w-5 h-5 text-gray-400" />
-        <h3 class="text-sm font-semibold text-white">
-          Top Sites ({{ siteStore.sortedSites.length }})
-        </h3>
+      <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-3">
+          <Layers class="w-5 h-5 text-gray-400" />
+          <h3 class="text-sm font-semibold text-white">
+            Top Sites ({{ siteStore.sortedSites.length }})
+          </h3>
+        </div>
+        
+        <!-- Statistics Button -->
+        <button
+          @click="showStatistics = true"
+          class="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center space-x-2"
+        >
+          <BarChart3 class="w-4 h-4" />
+          <span>Statistics</span>
+        </button>
       </div>
       
       <div class="flex items-center space-x-2">
@@ -56,20 +67,25 @@
         </div>
       </div>
     </div>
+
+    <!-- Statistics Modal -->
+    <StatisticsModal :is-open="showStatistics" @close="showStatistics = false" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
-import { Layers, ChevronLeft, ChevronRight, Search } from 'lucide-vue-next';
+import { Layers, ChevronLeft, ChevronRight, Search, BarChart3 } from 'lucide-vue-next';
 import { useSiteStore } from '@/stores/siteStore';
 import SiteCard from '@/components/SiteCard.vue';
+import StatisticsModal from '@/components/StatisticsModal.vue';
 import type { Site } from '@/types';
 
 const siteStore = useSiteStore();
 const scrollContainer = ref<HTMLDivElement>();
 const canScrollLeft = ref(false);
 const canScrollRight = ref(false);
+const showStatistics = ref(false);
 
 onMounted(() => {
   updateScrollState();

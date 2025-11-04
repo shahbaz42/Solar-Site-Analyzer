@@ -102,11 +102,14 @@ export const useSiteStore = defineStore('site', () => {
     }
   }
 
-  async function fetchStatistics() {
+  async function fetchStatistics(params?: {
+    min_score?: number;
+    max_score?: number;
+  }) {
     loading.value = true;
     error.value = null;
     try {
-      const stats = await apiService.getStatistics();
+      const stats = await apiService.getStatistics(params);
       statistics.value = stats;
       return stats;
     } catch (err: any) {

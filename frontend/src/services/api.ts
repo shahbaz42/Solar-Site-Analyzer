@@ -54,8 +54,11 @@ class ApiService {
   }
 
   // Get statistics
-  async getStatistics(): Promise<StatisticsResponse> {
-    const response = await this.client.get<StatisticsResponse>('/api/statistics');
+  async getStatistics(params?: {
+    min_score?: number;
+    max_score?: number;
+  }): Promise<StatisticsResponse> {
+    const response = await this.client.get<StatisticsResponse>('/api/statistics', { params });
     return response.data;
   }
 

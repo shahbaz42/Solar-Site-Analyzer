@@ -91,18 +91,6 @@ cp .env.example .env
 | `VITE_API_BASE_URL` | No | API endpoint (default: `http://localhost:8000`) |
 | `REDIS_ENABLED` | No | Enable caching (default: `True`) |
 
-### Security Best Practices
-
-✅ **DO**:
-- Keep `.env` file in your `.gitignore` (already configured)
-- Use strong passwords in production
-- Get your own Mapbox token (free tier available)
-- Share `.env.example` in repository (template only)
-
-❌ **DON'T**:
-- Never commit `.env` file to Git
-- Don't hardcode tokens in `docker-compose.yml` for public repos
-- Don't share your `.env` file or tokens publicly
 
 ### Rebuild After Token Changes
 

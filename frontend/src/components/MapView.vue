@@ -4,30 +4,59 @@
   </div>
   
   <!-- Map Controls Overlay -->
-  <div class="absolute top-4 right-4 space-y-2">
+  <div class="absolute top-4 right-4 flex flex-col space-y-2">
+    <!-- Zoom Controls -->
+    <div class="flex flex-col bg-white rounded-lg shadow-lg overflow-hidden">
+      <button
+        @click="zoomIn"
+        class="p-2 hover:bg-gray-50 transition-colors border-b border-gray-200"
+        title="Zoom In"
+      >
+        <Plus class="w-5 h-5 text-gray-700" />
+      </button>
+
+      <button
+        @click="zoomOut"
+        class="p-2 hover:bg-gray-50 transition-colors border-b border-gray-200"
+        title="Zoom Out"
+      >
+        <Minus class="w-5 h-5 text-gray-700" />
+      </button>
+
+      <button
+        @click="resetView"
+        class="p-2 hover:bg-gray-50 transition-colors"
+        title="Reset View"
+      >
+        <Home class="w-5 h-5 text-gray-700" />
+      </button>
+    </div>
+
+    <!-- Heat Map Toggle -->
     <button
-    @click="zoomIn"
-    class="p-2 bg-white hover:bg-gray-50 transition-colors rounded-l-lg border-r border-gray-200"
-    title="Zoom In"
-  >
-    <Plus class="w-5 h-5 text-gray-700" />
-  </button>
+      @click="toggleHeatMap"
+      class="p-2 bg-white hover:bg-gray-50 transition-colors rounded-lg shadow-lg"
+      :class="{ 'bg-amber-50 ring-2 ring-amber-400': heatMapEnabled }"
+      :title="heatMapEnabled ? 'Switch to Markers' : 'Switch to Heat Map'"
+    >
+      <Flame class="w-5 h-5" :class="heatMapEnabled ? 'text-amber-600' : 'text-gray-700'" />
+    </button>
+  </div>
 
-  <button
-    @click="zoomOut"
-    class="p-2 bg-white hover:bg-gray-50 transition-colors border-r border-gray-200"
-    title="Zoom Out"
+  <!-- Heat Map Legend -->
+  <div
+    v-if="heatMapEnabled"
+    class="absolute bottom-56 right-4 bg-white rounded-lg shadow-lg p-4 z-10"
   >
-    <Minus class="w-5 h-5 text-gray-700" />
-  </button>
-
-  <button
-    @click="resetView"
-    class="p-2 bg-white hover:bg-gray-50 transition-colors rounded-r-lg"
-    title="Reset View"
-  >
-    <Home class="w-5 h-5 text-gray-700" />
-  </button>
+    <h3 class="text-sm font-semibold text-gray-800 mb-2">Suitability Score</h3>
+    <div class="flex items-center space-x-2">
+      <div class="flex flex-col-reverse h-32 w-6 rounded" :style="{ background: 'linear-gradient(to top, #3b82f6, #10b981, #fbbf24, #ef4444)' }"></div>
+      <div class="flex flex-col-reverse justify-between h-32 text-xs text-gray-600">
+        <span>Low (0)</span>
+        <span class="my-auto">Medium (50)</span>
+        <span>High (100)</span>
+      </div>
+    </div>
   </div>
 
   <!-- Site Detail Popup -->
@@ -54,7 +83,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import mapboxgl from 'mapbox-gl';
-import { Plus, Minus, Home, X } from 'lucide-vue-next';
+import { Plus, Minus, Home, X, Flame } from 'lucide-vue-next';
 import { useSiteStore } from '@/stores/siteStore';
 import { MAPBOX_TOKEN, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, getScoreColor } from '@/config';
 import SitePopup from '@/components/SitePopup.vue';
@@ -65,7 +94,10 @@ const mapContainer = ref<HTMLDivElement>();
 const map = ref<mapboxgl.Map>();
 const markers = ref<Map<number, mapboxgl.Marker>>(new Map());
 const popupPosition = ref<{ x: number; y: number } | null>(null);
+const heatMapEnabled = ref(false);
 let popupUpdateInterval: number | null = null;
+const HEATMAP_SOURCE_ID = 'sites-heat';
+const HEATMAP_LAYER_ID = 'sites-heatmap';
 
 onMounted(() => {
   if (!MAPBOX_TOKEN) {
@@ -82,7 +114,10 @@ onMounted(() => {
     zoom: DEFAULT_MAP_ZOOM,
   });
 
-  // map.value.addControl(new mapboxgl.NavigationControl(), 'top-left');
+  // Wait for map to load before adding sources and layers
+  map.value.on('load', () => {
+    initializeHeatMap();
+  });
   
   // Update popup position during map movement
   map.value.on('move', () => {
@@ -92,7 +127,13 @@ onMounted(() => {
   });
   
   // Update markers when sites change
-  watch(() => siteStore.filteredSites, updateMarkers, { immediate: true, deep: true });
+  watch(() => siteStore.filteredSites, (sites) => {
+    if (heatMapEnabled.value) {
+      updateHeatMapData(sites);
+    } else {
+      updateMarkers(sites);
+    }
+  }, { immediate: true, deep: true });
   
   // Watch selected site to center map
   watch(() => siteStore.selectedSite, (site) => {
@@ -212,6 +253,121 @@ function resetView() {
 function closePopup() {
   siteStore.selectSite(null);
   popupPosition.value = null;
+}
+
+function initializeHeatMap() {
+  if (!map.value) return;
+
+  // Add heat map source
+  map.value.addSource(HEATMAP_SOURCE_ID, {
+    type: 'geojson',
+    data: {
+      type: 'FeatureCollection',
+      features: [],
+    },
+  });
+
+  // Add heat map layer
+  map.value.addLayer({
+    id: HEATMAP_LAYER_ID,
+    type: 'heatmap',
+    source: HEATMAP_SOURCE_ID,
+    paint: {
+      // Increase weight as score increases
+      'heatmap-weight': [
+        'interpolate',
+        ['linear'],
+        ['get', 'score'],
+        0, 0,
+        100, 1
+      ],
+      // Increase intensity as zoom level increases
+      'heatmap-intensity': [
+        'interpolate',
+        ['linear'],
+        ['zoom'],
+        0, 1,
+        9, 3
+      ],
+      // Color ramp for heatmap - blue (low) to red (high)
+      'heatmap-color': [
+        'interpolate',
+        ['linear'],
+        ['heatmap-density'],
+        0, 'rgba(33, 102, 172, 0)',
+        0.2, 'rgb(59, 130, 246)',
+        0.4, 'rgb(16, 185, 129)',
+        0.6, 'rgb(251, 191, 36)',
+        0.8, 'rgb(245, 158, 11)',
+        1, 'rgb(239, 68, 68)'
+      ],
+      // Adjust radius by zoom level
+      'heatmap-radius': [
+        'interpolate',
+        ['linear'],
+        ['zoom'],
+        0, 2,
+        4, 15,
+        9, 40
+      ],
+      // Transition from heatmap to circle layer by zoom level
+      'heatmap-opacity': [
+        'interpolate',
+        ['linear'],
+        ['zoom'],
+        7, 1,
+        9, 0.5
+      ],
+    },
+  });
+
+  // Initially hide the heat map
+  map.value.setLayoutProperty(HEATMAP_LAYER_ID, 'visibility', 'none');
+
+  // Update heat map data when sites change
+  updateHeatMapData(siteStore.filteredSites);
+}
+
+function updateHeatMapData(sites: Site[]) {
+  if (!map.value || !map.value.getSource(HEATMAP_SOURCE_ID)) return;
+
+  const features = sites
+    .filter((site) => site.total_suitability_score !== null)
+    .map((site) => ({
+      type: 'Feature' as const,
+      properties: {
+        score: site.total_suitability_score,
+        name: site.site_name,
+      },
+      geometry: {
+        type: 'Point' as const,
+        coordinates: [site.longitude, site.latitude],
+      },
+    }));
+
+  const source = map.value.getSource(HEATMAP_SOURCE_ID) as mapboxgl.GeoJSONSource;
+  source.setData({
+    type: 'FeatureCollection',
+    features,
+  });
+}
+
+function toggleHeatMap() {
+  if (!map.value) return;
+
+  heatMapEnabled.value = !heatMapEnabled.value;
+
+  if (heatMapEnabled.value) {
+    // Show heat map, hide markers
+    map.value.setLayoutProperty(HEATMAP_LAYER_ID, 'visibility', 'visible');
+    markers.value.forEach((marker) => marker.remove());
+    // Close any open popup
+    siteStore.selectSite(null);
+  } else {
+    // Hide heat map, show markers
+    map.value.setLayoutProperty(HEATMAP_LAYER_ID, 'visibility', 'none');
+    updateMarkers(siteStore.filteredSites);
+  }
 }
 </script>
 

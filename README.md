@@ -14,7 +14,8 @@ https://github.com/user-attachments/assets/88327cab-2d2a-472a-8db5-51c90ea5c80f
 
 ## 🌟 Features
 
-- **Interactive Map Visualization** - Mapbox GL JS powered interface
+- **Interactive Map Visualization** - Mapbox GL JS powered interface with dual view modes
+- **Heat Map Overlay** - Toggle between marker and heat map visualization 🔥
 - **Intelligent Site Scoring** - Multi-factor weighted analysis algorithm
 - **Real-time Analysis** - Custom weight adjustment and instant recalculation
 - **High Performance** - Redis caching and async database operations
@@ -39,10 +40,12 @@ https://github.com/user-attachments/assets/88327cab-2d2a-472a-8db5-51c90ea5c80f
 3. Data caching for performance optimization              ✅ 
 4. Docker containerization                                ✅ 
 5. Unit tests for critical functions                      ✅ 
+6. Heat Map Feature                                       ✅ 
 
 ## 📚 Documentation
 
 - **API Documentation**: Auto-generated Swagger UI at `/docs`
+- **Heat Map Feature**: [HEATMAP_FEATURE.md](./HEATMAP_FEATURE.md)
 - **Docker Guide**: [README_DOCKER.md](./README_DOCKER.md)
 - **Backend README**: [backend/README.md](./backend/README.md)
 - **Frontend README**: [frontend/README.md](./frontend/README.md)
@@ -95,7 +98,7 @@ nano .env  # Add your Mapbox token (get free token from mapbox.com)
 docker-compose up -d
 
 # Access the application
-# Frontend: http://localhost
+# Frontend: http://localhost:8080
 # API Docs: http://localhost:8000/docs
 ```
 

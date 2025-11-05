@@ -45,7 +45,6 @@ https://github.com/user-attachments/assets/05569657-46b5-40c4-8d5c-c751015ca36e
 ## 📚 Documentation
 
 - **API Documentation**: Auto-generated Swagger UI at `/docs`
-- **Heat Map Feature**: [HEATMAP_FEATURE.md](./HEATMAP_FEATURE.md)
 - **Docker Guide**: [README_DOCKER.md](./README_DOCKER.md)
 - **Backend README**: [backend/README.md](./backend/README.md)
 - **Frontend README**: [frontend/README.md](./frontend/README.md)
